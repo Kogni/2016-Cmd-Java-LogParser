@@ -1,0 +1,56 @@
+Changes
+
+1.0.2
+- 2016.04.20: Parser will now read *log.* files aswell.
++ 2016.04.20: Added recognition for Fuel in terminal logs.
++ 2016.04.21: Improved recognition of flushing attempts in terminal logs. 
++ 2016.04.25: Added recognition of Trumf cards not being recognised.
++ 2016.04.26: Added recognition for get card info in terminal logs.
++ 2016.04.27: Added recognition and solutions for issue on Fuel item restrictions not being handled.
++ 2016.05.04: Added recognition and solutions for terminal ejecting card before CardDataResponse.
++ 2016.05.18: Added recognition for card reading issues in terminal logs.
+- 2016.05.18: Improved recognition for source of cancel in pppclient.log.
++ 2016.05.25: Added detail in transaction summary for failed transactions, telling how far the transaction got.
+- 2016.06.29: Added distinction between "Client lost connection to terminal" and "Client lacks connection to terminal"
++ 2016.07.06: Added recognition of OpenPED in terminal logs.
++ 2016.07.06: Improved summary details from terminal logs.
++ 2016.07.07: Added ECR-information to transaction summaries.
+
+1.0.1
+- 2016.03.08: Improved recognition and solutions for issues about terminal connection.
+- 2016.03.08: Improved recognition for issues about server connection.
+- 2016.03.08: Improved recognition of transactions and sessions in api_pppclient.log.
++ 2016.03.09: Added AUTHORIZED_AMOUNT and tip amount to trx summary.
+- 2016.03.09: Improved recognition of issue about double ECR instance.
+- 2016.03.09: Improved recognition of issue on canceling trx too soon.
++ 2016.03.14: Added complete-event to service summary.
+- 2016.03.14: Removed "Pin bypass not checked" from issues, as this is not really a problem.
++ 2016.03.14: Added recognition for issue "Terminal completed service before card" - complete-event received without cardDataResponse.
+- 2016.03.14: Improved solutions for "TrackData contains no CardIssuer": if CardDataResponse was not received, solution will be "Verify that terminal param #199 is 1."
+- 2016.03.14: Added solution for "No cardDataResponse received": Verify that terminal param #199 is 1.
+- 2016.03.14: Improved recognition for host response code Z3 - Don't print if cardDataResponse was not received.
+- 2016.03.14: Improved recognition for "Client does not handle cancel at this point. Terminal conn. is slow" - Don't print if propertieResponse was received.
+- 2016.03.14: Improved recognition for "Cancel called from ECR" - Don't print if problem is "Client does not handle cancel at this point. Terminal conn. is slow"
++ 2016.03.14: Added recognition and solution for "7:Avvist: Ekthetskontroll på".
++ 2016.03.15: Trx summary will now include issuer ID for all cards used, telling you if more than 1 card was used.
+- 2016.03.15: "No cardDataResponse received" and "No complete-event sent" will no longer show for TMS Update.
++ 2016.03.16: Added recognition and solutions for problem "LinkLayer code -1002"
++ 2016.03.16: Added solution for event 3028, ping failed on terminal
++ 2016.03.17: Added solution for several terminal connection symptoms: Verify Routing and Remote Access is running properly.
+- 2016.03.17: Improved recognition for several terminal connection symptoms 
++ 2016.03.18: Added recognition and solutions for issue "Failed to send AdditionalData".
++ 2016.03.18: Added recognition and solutions for issue "Failed to connect to socket".
++ 2016.03.18: Added recognition and solutions for issue "UnknownHostException".
++ 2016.03.18: Added recognition and solutions for issue "CommunicationException".
++ 2016.03.18: Improved solutions for issue "connect timed out".
+- 2016.03.22: Session settings will be reset whenever PosPayService is restarted.
++ 2016.03.22: Added connected IP addresses to session summary.
+- 2016.03.22: Status for client-server connection will be retained across transactions.
++ 2016.03.22: Added recognition for issue: "PosPayService lost connection to terminal"
++ 2016.04.11: Added recognition and solutions for "Wrong response from Service or Client method: 101"
++ 2016.04.11: Added recognition and solutions for "Wrong response from Service or Client method: 111"
+- 2016.04.11: Improved solutions for status code 409.
+- 2016.04.15: Improved recognition for events in terminal logs.
+- 2016.04.15: Improved recognition for card data in terminal logs.
+- 2016.04.18: Parser will now also read files extended with .LOG, .TXT and .SCRIPT (uppercase in addition to lowercase)
++ 2016.04.18: Added recognition for several terminal parameters.
