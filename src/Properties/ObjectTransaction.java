@@ -1965,6 +1965,7 @@ public class ObjectTransaction {
 	    if (class_Controller.config.getParam("Terminal connected in software") == "true") {
 		addIssue("Client lost connection to terminal", true, null);
 		addSolution("Verify physical terminal connection");
+		addSolution("Verify that power supply is sufficient");
 	    } else {
 		addIssue("Client lacks connection to terminal", true, null);
 		addSolution("Verify Routing and Remote Access is running properly");
@@ -1975,6 +1976,7 @@ public class ObjectTransaction {
 		addSolution("Try reinstalling USB drivers");
 		addSolution("Verify network settings");
 		addSolution("Verify terminal ECR mode is PPP");
+		addSolution("Verify that power supply is sufficient");
 	    }
 	}
 	if (raw.contains("Failed to download security settings for ")) {
