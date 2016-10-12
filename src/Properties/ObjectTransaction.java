@@ -897,7 +897,7 @@ public class ObjectTransaction {
 		this.Progress = 5;
 	    } else if ((temp.contains("[6]"))) {
 		this.Progress = 5;
-	    } else if ((temp.contains("[16]"))) {
+	    } else if ((temp.contains("[16]"))) {//ta ut kort
 		if (fact_approved != 2) {
 		    fact_cardEjected = true;
 		    // System.out.println("cardEjected " + raw);
@@ -2821,7 +2821,7 @@ public class ObjectTransaction {
 	}
 	if (raw.contains("Failed to parse date:")) {
 	    addIssue("Failed to parse date", false, null);
-	    solutions = solutions + " - System time possibly differs from server time";
+	    //solutions = solutions + " - System time possibly differs from server time";
 	    addSolution("System time possibly differs from server time");
 	}
 	if ((raw.contains("Failed to load keys")) && !(issues_last.contains("Failed to load keys"))) {

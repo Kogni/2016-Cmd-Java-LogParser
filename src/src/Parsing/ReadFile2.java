@@ -96,7 +96,7 @@ public class ReadFile2 {
     }
 
     private void Read_pppclient(String logFile) {
-	System.out.println("Reading " + logFile);
+	//System.out.println("Reading " + logFile);
 
 	File readFile = new File(class_Controller.workingDir + logFile);
 	if (!readFile.exists()) {

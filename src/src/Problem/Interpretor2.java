@@ -66,7 +66,7 @@ public class Interpretor2 {
     }
 
     public void CatchInfo(String rawLine, String logFile, String directory) throws FileNotFoundException, UnsupportedEncodingException {
-	System.out.println("CatchInfo "+ rawLine);
+	//System.out.println("CatchInfo "+ rawLine);
 	// time
 
 	try {

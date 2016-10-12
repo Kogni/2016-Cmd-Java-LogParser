@@ -14,7 +14,7 @@ class TextFilter {
 
     void ParseLine(String line, String logFile, Interpretor2 interpretor, String directory)
 	    throws FileNotFoundException, UnsupportedEncodingException {
-	System.out.println("Parsing lines: " + line);
+	//System.out.println("Parsing lines: " + line);
 	/*
 	 * The lines below decide what information is picked up, interpreted and posted to parsing results
 	 */
@@ -484,7 +484,7 @@ class TextFilter {
 
     private void ProcessLine(String line, String logFile, Interpretor2 interpretor, String Source, String directory)
 	    throws FileNotFoundException, UnsupportedEncodingException {
-	System.out.println(this.getClass().toString() + " line: " + line);
+	//System.out.println(this.getClass().toString() + " line: " + line);
 	if (line.contains("Avvist") == true) {
 	    // System.out.println(this.getClass().toString() + " line: " + line);
 	}
