@@ -1,5 +1,4 @@
 package src.Problem;
-
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -7,15 +6,12 @@ import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
-
 import Properties.ObjectTransaction;
 import src.Control.Controller;
 
 public class Interpretor2 {
-
     private Controller class_Controller;
     private OutputWriter outputWriter = new OutputWriter();
-
     boolean ECRopen = false; // for duplicate ECR-check
     boolean transactionRunning = false; // triggers some conclude
     private boolean transactionIssueFound = false;
@@ -25,12 +21,9 @@ public class Interpretor2 {
     boolean requestLogged = false;
     String serviceLogged = ""; // used for checking for conclude
     boolean serviceFinished = true;
-
     private LocalDateTime timePreviousLine;
     private LocalDateTime timeCurrentLine;
-
     private ObjectTransaction transaction;
-
     public Interpretor2(Controller class_Controller) throws FileNotFoundException, UnsupportedEncodingException {
 	try {
 	    this.class_Controller = class_Controller;
@@ -42,20 +35,18 @@ public class Interpretor2 {
 	    class_Controller.PrintAction(errors.toString());
 	}
     }
-
     private void NewPeriod(String rawLine, String logFile, String source, String directory)
 	    throws FileNotFoundException, UnsupportedEncodingException {
 	if (logging && !this.transaction.fact_service.value.equals("")) {
-	    Conclude(logFile, source, directory);
+	    forceConclude(logFile, source, directory);
 	}
 	logging = true;
 	transaction.saveSymptomStatus(rawLine, logFile);
     }
-
     private void NewRequest(String rawLine, String logFile, String source, String directory)
 	    throws FileNotFoundException, UnsupportedEncodingException {
 	if (logging) {
-	    Conclude(logFile, source, directory);
+	    forceConclude(logFile, source, directory);
 	}
 	logging = true;
 	transaction.saveSymptomStatus(rawLine, logFile);
@@ -64,11 +55,9 @@ public class Interpretor2 {
 	serviceLogged = "";
 	serviceFinished = false;
     }
-
     public void CatchInfo(String rawLine, String logFile, String directory) throws FileNotFoundException, UnsupportedEncodingException {
-	//System.out.println("CatchInfo "+ rawLine);
+	// System.out.println("CatchInfo "+ rawLine);
 	// time
-
 	try {
 	    if (tagged.get(logFile) == null) {
 		tagged.put(logFile, true);
@@ -82,9 +71,7 @@ public class Interpretor2 {
 	     * " INFO")); } catch (Exception e) { } try { tempDate = tempDate.substring(0, tempDate.indexOf(" ERROR")); } catch (Exception
 	     * e) { } tempDate = tempDate.substring(0, tempDate.indexOf(",")); DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
 	     * "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH); LocalDateTime date = LocalDateTime.parse(tempDate, formatter); this.timeCurrentLine =
-	     * date;
-	     * 
-	     * } catch (Throwable e) { }
+	     * date; } catch (Throwable e) { }
 	     */
 	    /*
 	     * try {//requires java 1.8! long timeDiffSeconds = (timeCurrentLine.getLong(ChronoField.SECOND_OF_DAY) -
@@ -92,7 +79,6 @@ public class Interpretor2 {
 	     * "Connected to /".toLowerCase())) {// CONCLUDE THEN START NEW TRANSACTION NewPeriod(rawLine, logFile, "Connected to /",
 	     * directory); } } } catch (Throwable e) { }
 	     */
-
 	    if (rawLine.toLowerCase().contains("PosPayClientImpl: Request:".toLowerCase())) {// CONCLUDE THEN START NEW TRANSACTION
 		// request kommer alltid før running service
 		// det kan komme requests som ikke trigger noen service.
@@ -102,10 +88,12 @@ public class Interpretor2 {
 		}
 		requestLogged = true;
 	    }
-	    if (rawLine.toLowerCase().contains("Running service ".toLowerCase())) {// Kommer med og uten request, ved hver trx og ved
-										   // oppstart
+	    if ((rawLine.toLowerCase().contains("Running service ".toLowerCase()))
+		    && !(rawLine.toLowerCase().contains("no Running service ".toLowerCase()))) {// Kommer med og uten request, ved hver trx
+												// og ved
+												// oppstart
 		if (serviceFinished == true) {
-		    Conclude(logFile, "Running service ", directory);
+		    forceConclude(logFile, "Running service ", directory);
 		    // NewRequest(rawLine, logFile, "Running service ", directory);
 		}
 		String start = "Running service ".toLowerCase();
@@ -116,7 +104,7 @@ public class Interpretor2 {
 	    }
 	    if ((rawLine.toLowerCase().contains("New request received from PMS:".toLowerCase()))) {// protel only
 		if (serviceFinished == true) {
-		    Conclude(logFile, "New request received from PMS:", directory);
+		    forceConclude(logFile, "New request received from PMS:", directory);
 		    // NewRequest(rawLine, logFile, "Running service ", directory);
 		}
 		String start = "New request received from PMS:";
@@ -133,13 +121,11 @@ public class Interpretor2 {
 		serviceFinished = true;
 		// det kan komme events etter "is done"
 	    }
-
 	    if (rawLine.toLowerCase()
 		    .contains("[AWT-EventQueue-0] com.pos.pospayinterface.PosPayClientProxy: getPosPayClient starting".toLowerCase())) {
 		// CONCLUDE THEN START NEW TRANSACTION
 		NewRequest(rawLine, logFile, "getPosPayClient starting", directory);
 	    }
-
 	    if (rawLine.toLowerCase().contains("PPPDLLServer::SendRequest(".toLowerCase())) {// CONCLUDE THEN START NEW TRANSACTION
 		NewRequest(rawLine, logFile, "PPPDLLServer::SendRequest(", directory);
 	    }
@@ -148,18 +134,17 @@ public class Interpretor2 {
 		logging = true;
 		transactionRunning = false;
 	    }
-
 	    if ((rawLine.toLowerCase().contains("receiptService is done".toLowerCase()))) {
 		// System.out.println(transaction.fact_service.value + " " + rawLine);
 		outputWriter.WriteLine(rawLine, logFile, directory);
 		transaction.saveSymptomStatus(rawLine, logFile);
-		Conclude(logFile, "receiptService is done", directory);
+		forceConclude(logFile, "receiptService is done", directory);
 		transactionRunning = false;
 		return;
 	    }
 	    if ((rawLine.toLowerCase().contains("shutting down...".toLowerCase()))) {
 		// System.out.println(transaction.fact_service.value + " " + rawLine);
-		Conclude(logFile, "shutting down", directory);
+		forceConclude(logFile, "shutting down", directory);
 		outputWriter.WriteLine(rawLine, logFile, directory);
 		transaction.saveSymptomStatus(rawLine, logFile);
 		transactionRunning = false;
@@ -167,7 +152,6 @@ public class Interpretor2 {
 		logging = true;
 		return;
 	    }
-
 	    if ((rawLine.toLowerCase().contains("Starting PosPay Client...".toLowerCase()))) {
 		// System.out.println("Starting PosPay Client " + ECRopen + " " + logFile + " " + rawLine);
 		if (ECRopen == true) { // duplicate ECR!
@@ -175,11 +159,11 @@ public class Interpretor2 {
 			outputWriter.WriteLine("Two ECRs are open!a", logFile, directory); // print to log
 			transaction.saveSymptomStatus("Two ECRs are open!a", logFile); // send to diagnostics
 		    }
-		    Conclude(logFile, "Starting PosPay Client...", directory);
+		    forceConclude(logFile, "Starting PosPay Client...", directory);
 		} else { // starten av loggen+restart
 		    // System.out.println("Starting PosPay Client " + ECRopen + " " + logFile + " logging=" + logging + " " + rawLine);
 		    if (logging) {// restart
-			Conclude(logFile, "Starting PosPay Client...", directory);
+			forceConclude(logFile, "Starting PosPay Client...", directory);
 		    }
 		}
 		this.class_Controller.newSession();
@@ -190,7 +174,6 @@ public class Interpretor2 {
 		serviceFinished = true; // the next service will be a separate stack
 		return;
 	    }
-
 	    if ((rawLine.toLowerCase().contains("dispatching event: [1".toLowerCase()))) {
 		String temp;
 		temp = rawLine.substring(rawLine.indexOf("dispatching event: "));
@@ -199,28 +182,26 @@ public class Interpretor2 {
 		    // System.out.println(transaction.fact_service.value + " " + rawLine);
 		    outputWriter.WriteLine(rawLine, logFile, directory);
 		    transaction.saveSymptomStatus(rawLine, logFile);
-		    Conclude(logFile, "receiptService is done", directory);
+		    forceConclude(logFile, "receiptService is done", directory);
 		    transactionRunning = false;
 		    return;
 		}
 		// may be event 17 - bonus scanned
 		// return;
 	    }
-
 	    if (// FORCE CONCLUDE THEN START NEW TRANSACTION
 	    (rawLine.toLowerCase().contains("Regular boot".toLowerCase())) // terminal
 	    ) {
-		//System.out.println("Regular boot "+rawLine);
-		Conclude(logFile, "Regular boot", directory);
+		// System.out.println("Regular boot "+rawLine);
+		forceConclude(logFile, "Regular boot", directory);
 	    } else if (// FORCE CONCLUDE THEN START NEW TRANSACTION
 	    (rawLine.toLowerCase().contains("Starting event".toLowerCase()))
 		    || (rawLine.toLowerCase().contains("Wait for transaction: Transaction received".toLowerCase())
-			    || (rawLine.toLowerCase().contains("Executing sale transaction".toLowerCase()))
-			    )// terminal
+			    || (rawLine.toLowerCase().contains("Executing sale transaction".toLowerCase())))// terminal
 	    ) {
-		//System.out.println("Transaction received "+rawLine);
+		// System.out.println("Transaction received "+rawLine);
 		if (transactionRunning == true) {
-		    Conclude(logFile, "Transaction received", directory);
+		    forceConclude(logFile, "Transaction received", directory);
 		} else {
 		    NewRequest(rawLine, logFile, "Transaction received", directory);
 		}
@@ -228,9 +209,10 @@ public class Interpretor2 {
 	    } else if (// FORCE CONCLUDE THEN START NEW TRANSACTION
 	    (rawLine.toLowerCase().contains("openPED called..".toLowerCase()))) {// terminal
 		if (transactionRunning == true) {
-		    Conclude(logFile, "openPED", directory);
+		    forceConclude(logFile, "openPED called..", directory);
+		} else {
+		    NewRequest(rawLine, logFile, "openPED called..", directory);
 		}
-		NewRequest(rawLine, logFile, "openPED", directory);
 		try {
 		    // outputWriter.WriteLine(rawLine, logFile);
 		} catch (Exception e) {
@@ -247,7 +229,7 @@ public class Interpretor2 {
 		    || (rawLine.toLowerCase().contains("[i18n] Message NO-569:".toLowerCase()))
 		    || (rawLine.toLowerCase().contains("The async flushing thread ended".toLowerCase()))) {
 		outputWriter.WriteLine(rawLine, logFile, directory);
-		Conclude(logFile, "B", directory);
+		forceConclude(logFile, "B", directory);
 		return;
 	    }
 	    if (transactionIssueFound) {
@@ -266,9 +248,7 @@ public class Interpretor2 {
 		}
 		if (awaitingResponse > -1) {
 		    awaitingResponse++;
-		    if (awaitingResponse > 60) {
-
-		    } else if (awaitingResponse > 5) {
+		    if (awaitingResponse > 60) {} else if (awaitingResponse > 5) {
 			CatchInfo("PPCL awaiting response from terminal! " + awaitingResponse, logFile, directory);
 		    }
 		}
@@ -278,8 +258,7 @@ public class Interpretor2 {
 	    if ((rawLine.toLowerCase().contains("Timeout on incomplete service".toLowerCase()))
 		    || (rawLine.toLowerCase().contains("Transaction failed".toLowerCase()))
 		    || (rawLine.toLowerCase().contains("00000027".toLowerCase()))
-		    || (rawLine.toLowerCase().contains("REJECTED".toLowerCase()))) {
-	    }
+		    || (rawLine.toLowerCase().contains("REJECTED".toLowerCase()))) {}
 	    if ((rawLine.toLowerCase().contains("Response received".toLowerCase()) == false)
 		    && (rawLine.toLowerCase().contains("Message to send (serial-style): 06".toLowerCase()) == false)) {
 		if (rawLine.contains("EVENT") == true) {
@@ -291,8 +270,7 @@ public class Interpretor2 {
 	    // les igjennom globale variabler
 	    try {
 		transaction.saveSymptomStatus(rawLine, logFile);
-	    } catch (Exception e) {
-	    }
+	    } catch (Exception e) {}
 	    timePreviousLine = this.timeCurrentLine;
 	} catch (Throwable e) {
 	    class_Controller.PrintAction("An error occurred!");
@@ -301,9 +279,8 @@ public class Interpretor2 {
 	    class_Controller.PrintAction(errors.toString());
 	}
     }
-
     @SuppressWarnings("javadoc")
-    public void Conclude(String logFile, String source, String directory) throws FileNotFoundException, UnsupportedEncodingException { // kalles
+    public void forceConclude(String logFile, String source, String directory) throws FileNotFoundException, UnsupportedEncodingException { // kalles
 																       // fra
 																       // CatchInfo
 	// System.out.println("-> Interpretor concluding problem. Source=" + source + " issues=" + transaction.issues_last); // og fra
@@ -326,16 +303,11 @@ public class Interpretor2 {
 	    } else if ((class_Controller.config.getParam("PosPayService").equals("true"))) {
 		description = transaction.getDescription_transaction(logFile);
 	    }
-	} catch (Exception e) {
-	}
-
+	} catch (Exception e) {}
 	// summarize transaction
 	outputWriter.WriteLine(description, logFile, directory);
-
 	NoteConclusion(logFile, problemname, problemname, directory);
-
     }
-
     private void NoteConclusion(String logFile, String ProbableName, String conclusion, String directory)
 	    throws FileNotFoundException, UnsupportedEncodingException {
 	// System.out.println("Interpretor shall note conclusion " + conclusion);
@@ -344,18 +316,16 @@ public class Interpretor2 {
 	// ListReasons();
 	ClearLogAndStartNewTrx();
     }
-
     private void ClearLogAndStartNewTrx() {
 	transactionIssueFound = false;
 	awaitingResponse = -1;
+	serviceFinished = false;
 	try {
 	    transaction = new ObjectTransaction(class_Controller);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
-
     }
-
     private boolean addConclusion(String problemname) {
 	// System.out.println("addConclusion " + problemname + " " + (transaction.issues_last + transaction.issues_first).length());
 	if ((transaction.issues_last + transaction.issues_first).length() > 0) {
@@ -367,7 +337,6 @@ public class Interpretor2 {
 	}
 	return true;
     }
-
     private boolean noConclusion() {
 	/*
 	 * if (transaction.issues_last.length() <= 1) { // ingen issues if (!this.logging && !this.transactionRunning) { return false; } }

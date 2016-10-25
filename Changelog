@@ -15,6 +15,10 @@ Changes
 + 2016.07.06: Added recognition of OpenPED in terminal logs.
 + 2016.07.06: Improved summary details from terminal logs.
 + 2016.07.07: Added ECR-information to transaction summaries.
++ 2016.10.24: Added DNS information to transaction summaries.
+- 2016.10.25: Improved transaction progress counter.
++ 2016.10.25: Added recognition of transactions cancelled\rejected after PIN entry.
++ 2016.10.25: Added counter and sorting for likely solutions.
 
 1.0.1
 - 2016.03.08: Improved recognition and solutions for issues about terminal connection.

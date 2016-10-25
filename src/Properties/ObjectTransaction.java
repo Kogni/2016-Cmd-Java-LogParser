@@ -4,8 +4,19 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import src.Control.Controller;
 
 /**
@@ -92,7 +103,9 @@ public class ObjectTransaction {
     // THEORY, possible scenarios, interpretations
     public String issues_first = "";
     public String issues_last = "";
-    private String solutions = "";
+    // private String solutions = "";
+    private HashMap<String, Integer> solutionsTransaction = new HashMap<String, Integer>();
+    LinkedHashMap<String, Integer> result;
     private boolean suspect_AID = false;
     private boolean suspect_key = false;
     private boolean suspect_PPS = false;
@@ -130,22 +143,23 @@ public class ObjectTransaction {
 	    // result = "";
 	    fact_issuerName = "";
 	    issues_last = "";
-	    solutions = class_Controller.newline;
+	    // solutions = class_Controller.newline;
 	    // notes = "";
 	    timePreviousLine = null;
 	    Amount_total = 0;
 	    Amount_tip = 0;
 	    fact_completeEventReceived = "";
+	    solutionsTransaction = new HashMap();
 	} catch (Throwable e) {
 	    class_Controller.PrintAction("An error occurred!");
 	    StringWriter errors = new StringWriter();
 	    e.printStackTrace(new PrintWriter(errors));
 	    class_Controller.PrintAction(errors.toString());
 	}
-	System.out.println("ObjectTransaction. cardEject=" + this.fact_cardEjected);
+	// System.out.println("ObjectTransaction. cardEject=" + this.fact_cardEjected);
     }
     public void saveSymptomStatus(String raw, String logFile) {
-	System.out.println("saveSymptomStatus=" + raw);
+	// System.out.println("saveSymptomStatus=" + raw);
 	if (raw.contains("7:Avvist:")) {
 	    // System.out.println("7-avvist A11=" + raw);
 	}
@@ -193,7 +207,7 @@ public class ObjectTransaction {
 	    class_Controller.config.addParam("debug.log", "true");
 	} else if (raw.contains("com.pos.") || raw.contains("com.payex.")) {
 	    class_Controller.config.addParam("pppclient.log", "true");
-	    class_Controller.config.addParam("debug.log", "falsse");
+	    class_Controller.config.addParam("debug.log", "false");
 	}
 	if (raw.toLowerCase().contains("DefaultEventDispatcher:".toLowerCase())) {
 	    // System.out.println("raw=" + raw);
@@ -349,14 +363,14 @@ public class ObjectTransaction {
 	    if (temp.contains("receipt")) {
 		class_Controller.config.addParam("cardInTerminal", "false");
 	    }
-	    System.out.println("Running service " + fact_service.value + ". cardEject=" + this.fact_cardEjected + " " + raw);
+	    // System.out.println("Running service " + fact_service.value + ". cardEject=" + this.fact_cardEjected + " " + raw);
 	} else if (raw.contains("PPP_HOME=")) {
 	    fact_service.value = "Starting";
 	    // fact_PPS_started = true;
 	    class_Controller.config.addParam("PosPayService", "true");
 	} else if (raw.contains("shutting down...")) {
 	    fact_service.value = "Closing PosPayService";
-	    this.Progress = 10;
+	    setProgress(10);
 	} else if (raw.contains("openPED called..")) {
 	    fact_service.value = "OpenPED";
 	}
@@ -461,14 +475,14 @@ public class ObjectTransaction {
 	    fact_CardDataResponse++;
 	    fact_cardEntered = true;
 	    class_Controller.config.addParam("cardInTerminal", "true");
-	    this.Progress = 4;
+	    setProgress(4);
 	}
 	if ((raw.contains("Chip card data received")) || (raw.contains("Chip card inserted")) || (raw.contains("Chip card is detected"))) {
 	    fact_EntryMode.value = "CHIP";
 	    fact_CardDataResponse++;
 	    fact_cardEntered = true;
 	    class_Controller.config.addParam("cardInTerminal", "true");
-	    this.Progress = 4;
+	    setProgress(4);
 	}
 	if (raw.contains("APPLICATION_ID")) {
 	    fact_EntryMode.value = "CHIP";
@@ -512,19 +526,19 @@ public class ObjectTransaction {
 	    }
 	}
 	if (raw.contains("Initializing client...")) {
-	    this.Progress = 10;
+	    setProgress(10);
 	}
 	if (raw.contains("loginService is done")) {
 	    fact_TrxComplete = true;
-	    this.Progress = 10;
+	    setProgress(10);
 	}
 	if (raw.contains("receiptService is done")) {
 	    fact_TrxComplete = true;
-	    this.Progress = 10;
+	    setProgress(10);
 	}
 	if (raw.contains("getPropertiesService is done")) {
 	    fact_TrxComplete = true;
-	    this.Progress = 10;
+	    setProgress(10);
 	}
 	if ((raw.contains("ISSUER_ID	-	83"))) {
 	    fact_Issuer_ID = fact_Issuer_ID + "83" + " ";
@@ -566,7 +580,7 @@ public class ObjectTransaction {
 	    fact_propertieResponse = true;
 	    class_Controller.config.addParam("Terminal connection", "true");
 	    class_Controller.config.addParam("Terminal connected in software", "true");
-	    this.Progress = 1;
+	    setProgress(1);
 	    // System.out.println("PPCL connected to terminal "+raw);
 	}
 	if (raw.contains("AbstractRequest: TLV Tags")) {
@@ -638,11 +652,11 @@ public class ObjectTransaction {
 	    } else if (temp.equals("(3 - ")) { // enter pin
 		fact_cardEntered = true;
 		class_Controller.config.addParam("cardInTerminal", "true");
-		Progress = 5;
+		setProgress(5);
 	    } else if (temp.contains("(4 - ")) { // behandler
 	    } else if (temp.contains("(11 - ")) { // fjern kort
 	    } else if (temp.contains("118 - ")) { // autoriserer
-		this.Progress = 6;
+		setProgress(6);
 	    } else if (temp.contains("200 - ")) { // MP available
 	    } else if (temp.contains("201 - ")) { // MP checked in
 	    } else if (temp.contains("202 - ")) { // MP accepted
@@ -682,7 +696,7 @@ public class ObjectTransaction {
 		class_Controller.config.addParam("Terminal connected in software", "true");
 	    } else if (temp.equals("19")) {// WAIT_TOTAL_AMOUNT_ENTRY
 	    } else if (temp.equals("118")) {// AUTHORIZATION_IN_PROGRESS
-		this.Progress = 6;
+		setProgress(6);
 	    } else if (temp.equals("200")) {// MP available
 	    } else if (temp.equals("201")) {// MP checked in
 	    } else if (temp.equals("202")) {// MP accepted
@@ -699,31 +713,31 @@ public class ObjectTransaction {
 	    } else if (temp.equals("1700")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1702")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1710")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1711")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1712")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1901")) { // rapport utført
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("1905")) {
 		fact_approved = 1;
 		fact_TrxComplete = true;
-		this.Progress = 10;
+		setProgress(10);
 	    } else if (temp.equals("4000")) {// receipt_Response
 	    } else if (temp.equals("4002")) {// INPUT_REQUEST_RESPONSE
 	    } else if (temp.equals("4003")) {// Inputdialog kansellert. Kan være forced signature
@@ -747,7 +761,7 @@ public class ObjectTransaction {
 	    } else if (temp.contains("Internal ID 3, external ID 9")) {// tast pin
 		fact_cardEntered = true;
 		class_Controller.config.addParam("cardInTerminal", "true");
-		Progress = 5;
+		setProgress(5);
 	    } else if (temp.contains("Internal ID 5, external ID 11")) {// sett inn kort
 		this.fact_askedCard = true;
 	    } else if (temp.contains("Internal ID 8, external ID 14")) {// ta ut kort, vennligst vent. Helt normalt
@@ -792,7 +806,7 @@ public class ObjectTransaction {
 		suspect_DeclinedHost = true;
 		fact_approved = 2;
 	    } else if (temp.contains("1510")) {
-		if (!this.suspect_cancelECR) {
+		if (!this.suspect_cancelECR && !this.suspect_cancelPPCL) {
 		    this.suspect_DeclinedTerminal = true;
 		}
 		fact_approved = 2;
@@ -829,7 +843,7 @@ public class ObjectTransaction {
 	    temp = raw.substring(raw.indexOf(start));
 	    temp = temp.substring(start.length());
 	    // temp = temp.substring(0, temp.indexOf("]"));
-	    // System.out.println("A: "+raw);
+	    // System.out.println("Received event: " + raw);
 	    try {
 		int kode = Integer.parseInt(temp);
 	    } catch (Exception e) {}
@@ -837,6 +851,12 @@ public class ObjectTransaction {
 	    if ((!temp.contains("3:")) && (!temp.contains("9:")) && (!temp.contains("11:")) && (!temp.contains("13:"))
 		    && (!temp.contains("14:")) && (!temp.contains("16:")) && (!temp.contains("Event(10 -")) && (!temp.contains("218:"))
 		    && (!temp.contains("705:")) && (!temp.contains("832:"))) {}
+	    if ((temp.contains("9:"))) {
+		setProgress(5);
+	    } else if ((temp.contains("13:"))) {
+		// System.out.println("Received event 13: " + raw);
+		setProgress(6);
+	    }
 	    // problematic
 	    if ((temp.contains("705"))) {
 		class_Controller.config.addParam("cardInTerminal", "false");
@@ -892,12 +912,12 @@ public class ObjectTransaction {
 	    }
 	    if ((temp.contains("[1]"))) {
 		this.fact_askedCard = true;
-		this.Progress = 3;
+		setProgress(3);
 	    } else if ((temp.contains("[3]"))) {
-		this.Progress = 5;
+		setProgress(5);
 	    } else if ((temp.contains("[6]"))) {
-		this.Progress = 5;
-	    } else if ((temp.contains("[16]"))) {//ta ut kort
+		setProgress(5);
+	    } else if ((temp.contains("[16]"))) {// ta ut kort
 		if (fact_approved != 2) {
 		    fact_cardEjected = true;
 		    // System.out.println("cardEjected " + raw);
@@ -907,7 +927,7 @@ public class ObjectTransaction {
 	    } else if ((temp.contains("[30]"))) {
 		addIssue(temp, false, null);
 	    } else if ((temp.contains("[118]"))) {
-		this.Progress = 6;
+		setProgress(6);
 	    } else if ((temp.contains("[121]"))) {
 		fact_approved = 1;
 	    } else if ((temp.contains("[122]"))) {
@@ -941,6 +961,8 @@ public class ObjectTransaction {
 	    // problematic
 	    if ((temp.contains("204"))) {// MP teknisk feil
 		addIssue("MobilePay login error [204]", true, null);
+		addSolution("Sjekk oppsett i SAT");
+		addSolution("Sjekk COM port-oppsett på maskinen, se etter feilmeldinger ved PPCLs oppstart");
 	    }
 	    if ((temp.contains("705"))) {
 		class_Controller.config.addParam("cardInTerminal", "false");
@@ -1201,13 +1223,13 @@ public class ObjectTransaction {
 	// status
 	if (raw.contains("REQUEST_SENT") || raw.contains("Done executing command: SendRequest")) {
 	    this.fact_REQUEST_SENT = true;
-	    this.Progress = 2;
+	    setProgress(2);
 	}
 	if (raw.contains("CardDataResponse: TLV Tags")) {
 	    this.fact_cardEntered = true;
 	    this.fact_CardDataResponse++;
 	    class_Controller.config.addParam("cardInTerminal", "true");
-	    this.Progress = 4;
+	    setProgress(4);
 	    class_Controller.config.addParam("Terminal connected in software", "true");
 	    // System.out.println(raw);
 	}
@@ -1870,10 +1892,10 @@ public class ObjectTransaction {
 	    fact_forcedOnline = true;
 	}
 	if (raw.contains("INPUT_PIN_ON: Perform online PIN validation")) {
-	    this.Progress = 5;
+	    setProgress(5);
 	}
 	if (raw.contains("Sending event. Internal ID 7, external ID 13")) {
-	    this.Progress = 6;
+	    setProgress(6);
 	}
 	if (raw.contains("c:\\PPPclient")) {
 	    this.ECR = "Storepoint";
@@ -1881,10 +1903,48 @@ public class ObjectTransaction {
 	if (raw.contains("EMSP\\BANK\\PosPay")) {
 	    this.ECR = "Elguide";
 	}
+	if (raw.contains("TimeoutOptimizedSocketAccess: Connecting to ")) {
+	    String DNS = raw.substring(
+		    raw.indexOf("TimeoutOptimizedSocketAccess: Connecting to ") + "TimeoutOptimizedSocketAccess: Connecting to ".length());
+	    String DNSIP = DNS;
+	    DNS = DNS.substring(0, DNS.indexOf("/"));
+	    DNSIP = DNSIP.substring(DNS.length() + 1);
+	    DNSIP = DNSIP.substring(0, DNSIP.indexOf(" "));
+	    if (DNSIP.contains("82.115.146.56")) {
+		DNSIP = DNSIP + " (test non-SSL)";
+	    } else if (DNSIP.contains("192.121.127.")) {
+		DNSIP = DNSIP + " (test SSL)";
+	    }
+	    class_Controller.config.addParam("DNS", DNS);
+	    class_Controller.config.addParam("DNS IP", DNSIP);
+	}
 	// issues. Order is decided by occurence in log
+	if (raw.contains("(AddAdditionalDataHandler.java:120)")) {
+	    addIssue("Trx stopped by broken database", true, null);
+	    addSolution("Reinstall");
+	    suspect_cancelPPCL = true;
+	}
+	if (raw.contains("cannot be cast to com.payex.pospay.client.commons.util.MobileRequest")) {
+	    // addIssue("Not an issue", true, null);
+	}
+	if (raw.contains("Error detecting cless card")) {
+	    addIssue("No card detected", true, null);
+	    addSolution("Sjekk at kortet fungerer");
+	    addSolution("Bytt kortleser");
+	}
+	if (raw.contains("Unexpected runtime exception occured")) {
+	    addIssue("Unexpected runtime exception", true, null);
+	    addSolution("Consider reinstalling");
+	}
+	if (raw.contains("Version not found in database, initial installation or upgrade is faulty")) {
+	    addIssue("Initial installation or upgrade is faulty", true, null);
+	    addSolution("Reinstall");
+	    suspect_cancelPPCL = true;
+	}
 	if (raw.contains("Premature end of file")) {
 	    addIssue("Premature end of file", true, null);
-	    addSolution("Feil i server. Gi Bjørnar tidspunkt for feilen, merchantID og hvilket miljø det skjedde i (prod/dev/test).");
+	    addSolution("Mulig feil i config.properties");
+	    addSolution("Mulig feil i server. Gi Bjørnar tidspunkt for feilen, merchantID og hvilket miljø det skjedde i (prod/dev/test).");
 	    addSolution("Reinstallering kan hjelpe.");
 	    addSolution("Sjekk at det ikke er installert Test-klient i Prod-miljø eller motsatt.");
 	}
@@ -1938,15 +1998,16 @@ public class ObjectTransaction {
 	// client startup issues
 	if (raw.contains("Failed to initialize client proxy")) {
 	    addIssue("Failed to start client", false, null);
+	    addSolution("Trenger ikke være et problem");
 	    addSolution("Possibly temporary. Try again.");
-	    addSolution("Try copy-pasting the data-folder from an installation that works");
+	    addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
 	    addSolution("Verify that PosPay/Sw/Java jars are not corrupt");
 	    addSolution("Verify ppp.key is valid");
 	}
 	if (raw.contains("(VersionHandler.java:18)")) {
 	    addIssue("Failed to start client", false, null);
 	    addSolution("Possibly temporary. Try again.");
-	    addSolution("Try copy-pasting the data-folder from an installation that works");
+	    addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
 	    addSolution("Verify that PosPay/Sw/Java jars are not corrupt");
 	    addSolution("Verify ppp.key is valid");
 	}
@@ -1960,6 +2021,7 @@ public class ObjectTransaction {
 		|| (raw.contains("Process failed, received status: 150"))) {
 	    // class_Controller.config.addParam("Terminal connection", "false");
 	    suspect_DeclinedClient = true;
+	    addSolution("Mulig feil i config.properties");
 	    addSolution("If not already tried, check if PcPos gets the same issue.");
 	    addSolution("Try restarting PosPayService. Check logs for communication failures");
 	    if (class_Controller.config.getParam("Terminal connected in software") == "true") {
@@ -2005,6 +2067,7 @@ public class ObjectTransaction {
 	if ((raw.contains("Failed to send AdditionalData")) || (raw.contains("Failed to connect to socket"))
 		|| (raw.contains("CommunicationException"))) {
 	    addIssue("Could not connect to server", true, null);
+	    addSolution("Mulig feil i config.properties");
 	    addSolution("Verify DNS settings");
 	    addSolution("Verify network settings");
 	}
@@ -2041,12 +2104,12 @@ public class ObjectTransaction {
 	    String issuesTemp = "Failed to start HTTP client";
 	    addIssue(issuesTemp, true, null);
 	}
-	if (raw.contains("Two ECRs are open!")) {
+	if (raw.contains("Two PosPayServices started!")) {
 	    // System.out.println(logFile);
 	    if (!logFile.contains("api_")) {
-		String issuesTemp = "Two ECRs are open!b";
+		String issuesTemp = "Two PosPayServices started!b";
 		addIssue(issuesTemp, true, null);
-		addSolution("Do not open a new instance of ECR while one is already running!");
+		addSolution("Check why a new PosPayService was started before the other was closed");
 	    }
 	}
 	if (raw.contains("Could not retrieve URL for class path resource ")) {
@@ -2073,9 +2136,10 @@ public class ObjectTransaction {
 	    String issuesTemp = "Datastore blocked (Unable to use spring beans)";
 	    suspect_DeclinedClient = true;
 	    addIssue(issuesTemp, false, null);
+	    addSolution("Mulig feil i config.properties");
 	    addSolution("Verify that TMS ports are not blocked");
 	    addSolution("Verify that relay ports are not blocked");
-	    addSolution("Verify that PPP.key is correct");
+	    addSolution("Verify ppp.key is valid");
 	    addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
 	    addSolution("Verify that terminal ID matches SAT setup");
 	    addSolution("Host file might need to have pospaywan.payex.com added");
@@ -2138,8 +2202,10 @@ public class ObjectTransaction {
 	}
 	if (raw.contains("ClassCastException")) {
 	    String issuesTemp = "ClassCastException";
-	    suspect_DeclinedClient = true;
-	    addIssue(issuesTemp, false, null);
+	    if (!raw.contains("MobileRequest")) {// bug i 4.17.3
+		suspect_DeclinedClient = true;
+		addIssue(issuesTemp, false, null);
+	    }
 	}
 	if (raw.contains("Failed to stop service")) {
 	    String issuesTemp = "Failed to stop service";
@@ -2339,7 +2405,7 @@ public class ObjectTransaction {
 	    String issuesTemp = "Terminal BIN.CSV error";
 	    suspect_DeclinedTerminal = true;
 	    addIssue(issuesTemp, true, null);
-	    solutions = solutions + "Fix BIN.CSV" + class_Controller.newline;
+	    addSolution("Fix BIN.CSV");
 	}
 	if (raw.contains(".floorLimitCheck(")) {
 	    String issuesTemp = "Amount is above offline floor limit";
@@ -2362,14 +2428,13 @@ public class ObjectTransaction {
 	if (raw.contains("There seems to be something wrong with the frame numbers")) {
 	    String issuesTemp = "Mismatch mellom sendt data og data fra pinpad";
 	    addIssue(issuesTemp, false, null);
-	    this.solutions = solutions + " - Check logs for missing salt keystore (will be logged at client startup)"
-		    + class_Controller.newline;
+	    addSolution("Check logs for missing salt keystore (will be logged at client startup)");
 	}
 	if ((raw.contains("(534,")) && !(raw.contains("INSERT INTO "))) {
 	    String issuesTemp = "Terminal is blocked";
 	    suspect_DeclinedTerminal = true;
 	    addIssue(issuesTemp, true, null);
-	    this.solutions = solutions + " - Terminal must be unblocked" + class_Controller.newline;
+	    addSolution("Terminal must be unblocked");
 	}
 	if (raw.contains("Failed to start PosPayService")) {
 	    String issuesTemp = "Failed to start PosPayService";
@@ -2397,13 +2462,16 @@ public class ObjectTransaction {
 	    String issuesTemp = "Failed to update terminal - client cannot boot";
 	    suspect_DeclinedTerminal = true;
 	    addIssue(issuesTemp, false, "FAILURE TO UPDATE PAYMENT TERMINAL, CLIENT WILL NOT BOOT");
-	    this.solutions = solutions + " - Check terminal cabels' connections" + class_Controller.newline
-		    + " - Try changing terminal cabels" + class_Controller.newline + " - Verify power to terminal"
-		    + class_Controller.newline + " - Verify com ports for terminal, try on a different computer" + class_Controller.newline
-		    + " - Remove all magnetic radiation" + class_Controller.newline + " - Verify keys" + class_Controller.newline
-		    + " - Verify PED-updater working properly";
+	    addSolution("Check terminal cabels' connections");
+	    addSolution("Try changing terminal cabels");
+	    addSolution("Verify power to terminal");
+	    addSolution("Verify com ports for terminal, try on a different computer");
+	    addSolution("Remove all magnetic radiation");
+	    addSolution("Verify keys");
+	    addSolution("Verify PED-updater working properly");
 	}
 	if (raw.contains("Error creating bean with name ")) {
+	    System.out.println(raw);
 	    if (raw.contains("Error creating bean with name 'gpaAccess'")) {
 		String issuesTemp = "Bean 'secureSocketFactory' issues";
 		addIssue(issuesTemp, false, null);
@@ -2429,16 +2497,18 @@ public class ObjectTransaction {
 		addSolution("Terminal may need replacement");
 	    }
 	    if (raw.contains("Error creating bean with name 'terminalSettingsHandler'")) {// årsak må sees i "caused by"
+		System.out.println("terminalSettingsHandler");
 		// suspect_AID = true;
 		class_Controller.config.addParam("PosPayService", "false");
 		suspect_DeclinedClient = true;
 		addSolution("Might be caused by issues in database.script/log");
-		addSolution("Could be caused by something else in the data-folder. Try copy-pasting from an installation that works.");
-		addSolution("Could be an invalid ppp.key");
+		addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
+		addSolution("Verify ppp.key is valid");
 		addSolution("Double-check that merchant ID and terminal ID is correct for the key folder.");
 		addSolution("Mulig feil med en avtale i SAT");
-		addSolution("Make sure you are not running a prod install in dev or vice versa, because that won't work.");
-		addSolution("Something is wrong on the server. Contact Bjørnar with timestamp, merchant ID and environment");
+		addSolution("Sjekk at det ikke er installert Test-klient i Prod-miljø eller motsatt.");
+		addSolution(
+			"Mulig feil i server. Gi Bjørnar tidspunkt for feilen, merchantID og hvilket miljø det skjedde i (prod/dev/test).");
 	    }
 	    if (raw.contains("'clientKeyStore'")) {
 		suspect_DeclinedClient = true;
@@ -2454,9 +2524,10 @@ public class ObjectTransaction {
 	    if (raw.contains("Error creating bean with name 'defaultCardExtensionsHandler'")) {
 		String issuesTemp = "Bean 'secureSocketFactory' issues";
 		addIssue(issuesTemp, false, null);
-		addSolution("Something is wrong on the server. Contact Bjørnar with timestamp, merchant ID and environment");
+		addSolution(
+			"Mulig feil i server. Gi Bjørnar tidspunkt for feilen, merchantID og hvilket miljø det skjedde i (prod/dev/test).");
 		addSolution("Reinstalling the client might help.");
-		addSolution("Check that you're not running Test-client in Prod environment or vice versa.");
+		addSolution("Sjekk at det ikke er installert Test-klient i Prod-miljø eller motsatt.");
 	    }
 	}
 	if (raw.contains("Unknown error while attempting payment terminal software update")) {
@@ -2699,6 +2770,7 @@ public class ObjectTransaction {
 	if (raw.contains("Failed to download product restrictions for ")) {
 	    suspect_DeclinedClient = true;
 	    addIssue("Could not parse server config at PPCL startup", false, null);
+	    addSolution("Mulig feil i config.properties");
 	    addSolution("Possibly caused by blocked ports. Check for connect timed out'");
 	}
 	if (raw.contains("Cannot create integer value from TLV Tag. Size too big")) {
@@ -2707,14 +2779,16 @@ public class ObjectTransaction {
 	    addSolution("In terminal, set parameter 253 to 1, OR In Config.properties, set pospay.client.strictTLVEncoding=true");
 	}
 	if (raw.contains("REJECTED_BEFORE_AUTH")) {
-	    String temp = "Card rejected";
-	    if (!this.suspect_cancelECR) {
-		suspect_DeclinedTerminal = true;
-		if (this.suspect_cancelTerminalsw == true) {// terminal has already cancelled
-		    temp = "Terminal set to Fuel in param 222?";
-		    addIssue(temp, false, null);
-		} else if (fact_cardEntered) {
-		    addIssue(temp, false, null);
+	    if (Progress < 6) {
+		String temp = "Card rejected";
+		if (!this.suspect_cancelECR) {
+		    suspect_DeclinedTerminal = true;
+		    if (this.suspect_cancelTerminalsw == true) {// terminal has already cancelled
+			temp = "Terminal set to Fuel in param 222?";
+			addIssue(temp, false, null);
+		    } else if (fact_cardEntered) {
+			addIssue(temp, false, null);
+		    }
 		}
 	    }
 	}
@@ -2816,12 +2890,12 @@ public class ObjectTransaction {
 	if (raw.contains("Failed to download terminal settings")) {
 	    suspect_DeclinedClient = true;
 	    addIssue("Failed to download terminal settings", true, null);
-	    addSolution("Incorrect PPP.key.");
+	    addSolution("Verify ppp.key is valid");
 	    PPPkey_correct = false;
 	}
 	if (raw.contains("Failed to parse date:")) {
 	    addIssue("Failed to parse date", false, null);
-	    //solutions = solutions + " - System time possibly differs from server time";
+	    // solutions = solutions + " - System time possibly differs from server time";
 	    addSolution("System time possibly differs from server time");
 	}
 	if ((raw.contains("Failed to load keys")) && !(issues_last.contains("Failed to load keys"))) {
@@ -2946,19 +3020,26 @@ public class ObjectTransaction {
 	    suspect_cancelECR = true;
 	}
 	if ((raw.contains("Received event, 39:")) || (raw.contains("User cancelled the transaction (code 3. online.)"))) {
+	    if (Progress >= 6) {
+		addIssue("Illegal cancellation after PIN!", true, null);
+	    }
 	    if (this.fact_approved != 2) {
 		fact_approved = 2;
 		if (!suspect_cancelECR) {
 		    if (fact_askedCard) {
 			if (fact_cardEntered) {
-			    addIssue("Card refused by or removed from terminal", false, null);
-			    this.suspect_DeclinedTerminal = true;
+			    if (Progress < 6) {
+				addIssue("Card refused by or removed from terminal", false, null);
+				this.suspect_DeclinedTerminal = true;
+			    }
 			} else {
 			    suspect_Cancelcustomer = true;
 			    addIssue("Cancel called by customer", false, null);
 			}
 		    } else {
-			addIssue("Transaction refused by terminal(possible cancel)", false, null);
+			if (Progress < 6) {
+			    addIssue("Transaction refused by terminal(possible cancel)", false, null);
+			}
 		    }
 		} else {
 		    suspect_cancelECR = true;
@@ -3076,6 +3157,7 @@ public class ObjectTransaction {
 			// addSolution("Try reinstalling PPCL");
 			// addSolution("Check terminal logs if terminal is offline");
 		    } else if (raw.contains("TransactionRejectedException")) {// already taken care of
+		    } else if (raw.contains("ClassCastException")) {// already taken care of
 		    } else if (raw.contains("LifecycleProcessor not initialized")) {// already taken care of
 		    } else if (raw.contains("UnknownHostException")) {// already taken care of
 		    } else if (raw.contains("CommunicationException")) {// already taken care of
@@ -3372,7 +3454,7 @@ public class ObjectTransaction {
 		if (logFile.toLowerCase() != null && (isTerminalLogg() == false)
 			&& (class_Controller.config.getParam("Terminal type") != null)
 			&& class_Controller.config.getParam("pppclient.log").contains("true")
-			&& (!class_Controller.config.getParam("Terminal type").equals("GPA"))) {
+			&& (!class_Controller.config.getParam("Terminal type").equals("GPA")) && (!isTransaction())) {
 		    // System.out.println("pppclient.log " + class_Controller.config.getParam("pppclient.log"));
 		    if (class_Controller.config.getParam("cardInTerminal") == "true") {
 			// addIssue("Card still in terminal", false, null);
@@ -3568,6 +3650,9 @@ public class ObjectTransaction {
 		    tekst = addParam(tekst, "pospay.client.relay.host.ssl.address");
 		    tekst = addParam(tekst, "relay.host.ssl.enabled");
 		}
+		tekst = tekst + "= DNS =" + class_Controller.newline;
+		tekst = addParam(tekst, "DNS");
+		tekst = addParam(tekst, "DNS IP");
 	    } else if (isTerminalLogg() == true) {
 		if ((class_Controller.config.getParam("Terminal type") != null)) {
 		    if ((class_Controller.config.getParam("Terminal type").contains("Mynt"))) {
@@ -3760,10 +3845,13 @@ public class ObjectTransaction {
 	return tekst;
     }
     private String description_issues(String tekst, String logFile) {
+	// System.out.println("issues a " + logFile);
 	if ((issues_last + issues_first).length() > 1) {
+	    // System.out.println("issues b " + isLogg(logFile));
 	    tekst = tekst + "SUSPECTS______________________" + class_Controller.newline;
 	    tekst = tekst + "Issues: " + issues_first + issues_last + class_Controller.newline;
 	    if (isLogg(logFile)) {
+		// System.out.println("issues c");
 		tekst = tekst + (this.suspect_AID ? ("AID: " + this.suspect_AID + class_Controller.newline) : "");
 		tekst = tekst + (this.suspect_key ? ("Key: " + this.suspect_key + class_Controller.newline) : "");
 		tekst = tekst + (this.suspect_PPS ? ("PosPayService: " + this.suspect_PPS + class_Controller.newline) : "");
@@ -3783,7 +3871,21 @@ public class ObjectTransaction {
 		tekst = tekst + (this.suspect_cancelPPCL
 			? ("Cancel from PosPayService: " + this.suspect_cancelPPCL + class_Controller.newline) : "");
 		tekst = tekst + (this.suspect_cancelECR ? ("Cancel from ECR: " + this.suspect_cancelECR + class_Controller.newline) : "");
-		tekst = tekst + "Solutions: " + solutions + "";
+		// tekst = tekst + "Solutions: " + solutions + "";
+		tekst = tekst + "Solutions: ";
+		/*
+		 * Iterator it = solutionsTransaction.entrySet().iterator(); while (it.hasNext()) { Map.Entry pair = (Map.Entry) it.next();
+		 * // System.out.println(pair.getKey() + " = " + pair.getValue()); tekst = tekst + pair.getKey() + " (" + pair.getValue() +
+		 * ")" + class_Controller.newline; it.remove(); // avoids a ConcurrentModificationException }
+		 */
+		result = sortHashMapByValues(solutionsTransaction);
+		Iterator it = result.entrySet().iterator();
+		while (it.hasNext()) {
+		    Map.Entry pair = (Map.Entry) it.next();
+		    // System.out.println(pair.getKey() + " = " + pair.getValue());
+		    tekst = tekst + pair.getKey() + " (" + pair.getValue() + ")" + class_Controller.newline;
+		    it.remove(); // avoids a ConcurrentModificationException
+		}
 	    }
 	}
 	return tekst;
@@ -3807,7 +3909,9 @@ public class ObjectTransaction {
 	return false;
     }
     private boolean isLogg(String logFile) {
-	if ((class_Controller.config.getParam("Terminal type") != null) || logFile.contains("comserver")) {
+	if ((class_Controller.config.getParam("Terminal type") != null) || logFile.contains("comserver")
+		|| (class_Controller.config.getParam("pppclient.log") != null
+			&& class_Controller.config.getParam("pppclient.log").contains("true"))) {
 	    return true;
 	}
 	return false;
@@ -3822,9 +3926,36 @@ public class ObjectTransaction {
 	return false;
     }
     private void addSolution(String add) {
-	if (!this.solutions.contains(add)) {
-	    solutions = solutions + " - " + add + class_Controller.newline;
+	if (solutionsTransaction.get(add) != null) {
+	    Integer count = (Integer) solutionsTransaction.get(add);
+	    count++;
+	    solutionsTransaction.put(add, count);
+	} else {
+	    solutionsTransaction.put(add, new Integer(1));
 	}
+    }
+    public LinkedHashMap<String, Integer> sortHashMapByValues(HashMap<String, Integer> passedMap) {
+	List<String> mapKeys = new ArrayList<>(passedMap.keySet());
+	List<Integer> mapValues = new ArrayList<>(passedMap.values());
+	Collections.sort(mapValues);
+	Collections.sort(mapKeys);
+	LinkedHashMap<String, Integer> sortedMap = new LinkedHashMap<>();
+	Iterator<Integer> valueIt = mapValues.iterator();
+	while (valueIt.hasNext()) {
+	    Integer val = valueIt.next();
+	    Iterator<String> keyIt = mapKeys.iterator();
+	    while (keyIt.hasNext()) {
+		String key = keyIt.next();
+		Integer comp1 = passedMap.get(key);
+		Integer comp2 = val;
+		if (comp1.equals(comp2)) {
+		    keyIt.remove();
+		    sortedMap.put(key, val);
+		    break;
+		}
+	    }
+	}
+	return sortedMap;
     }
     private void addIssue(String add, boolean front, String source) {
 	// System.out.println("addIssue " + add + " " + source);
@@ -3870,5 +4001,10 @@ public class ObjectTransaction {
 	    }
 	}
 	return tekst;
+    }
+    private void setProgress(int ny) {
+	if (Progress < ny) {
+	    Progress = ny;
+	}
     }
 }

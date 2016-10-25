@@ -122,11 +122,11 @@ public class ReadFile2 {
 	    String line = null;
 	    parser.StartNewParse();
 	    while ((line = reader.readLine()) != null) {
-		System.out.println("Reading line " + line);
+		//System.out.println("Reading line " + line);
 		parser.ParseLine(line, logFile, interpretor, class_Controller.workingDir);
 	    }
 	    reader.close();
-	    interpretor.Conclude(logFile, "EOF", class_Controller.workingDir);
+	    interpretor.forceConclude(logFile, "EOF", class_Controller.workingDir);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
