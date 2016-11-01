@@ -99,6 +99,9 @@ public class ObjectTransaction {
     public boolean fact_TrxComplete = false;
     boolean fact_AIDfound = false;
     boolean fact_usingImmidiatePrintEvents = false;
+    boolean fact_DialogAsked = false;
+    boolean fact_DialogRequired = false;
+    boolean fact_DialogAnswered = false;
     HashMap events = new HashMap();
     // THEORY, possible scenarios, interpretations
     public String issues_first = "";
@@ -126,7 +129,7 @@ public class ObjectTransaction {
     boolean trxSaved = false;
     @SuppressWarnings({ "javadoc" })
     public ObjectTransaction(Controller class_Controller) throws FileNotFoundException, UnsupportedEncodingException {
-	System.out.println("ObjectTransaction");
+	// System.out.println("ObjectTransaction");
 	try {
 	    this.class_Controller = class_Controller;
 	    Progress = 0;
@@ -370,7 +373,7 @@ public class ObjectTransaction {
 	    class_Controller.config.addParam("PosPayService", "true");
 	} else if (raw.contains("shutting down...")) {
 	    fact_service.value = "Closing PosPayService";
-	    setProgress(10);
+	    // setProgress(10);
 	} else if (raw.contains("openPED called..")) {
 	    fact_service.value = "OpenPED";
 	}
@@ -520,25 +523,23 @@ public class ObjectTransaction {
 	    fact_rspCode.value = temp;
 	    if (temp.equals("58")) {
 		addIssue("Rejected by server with 58", true, null);
-		addSolution(
-			"This transaction possibly contradicts SAT agreements.\nIn the case of illegal transactions, PayEx must pay the customer for these trx'es.\nWipe terminal, load it with the correct setup and then return it to customer.");
 		suspect_DeclinedServer = true;
 	    }
 	}
 	if (raw.contains("Initializing client...")) {
-	    setProgress(10);
+	    // setProgress(10);
 	}
 	if (raw.contains("loginService is done")) {
 	    fact_TrxComplete = true;
-	    setProgress(10);
+	    // setProgress(10);
 	}
 	if (raw.contains("receiptService is done")) {
 	    fact_TrxComplete = true;
-	    setProgress(10);
+	    // setProgress(10);
 	}
 	if (raw.contains("getPropertiesService is done")) {
 	    fact_TrxComplete = true;
-	    setProgress(10);
+	    // setProgress(10);
 	}
 	if ((raw.contains("ISSUER_ID	-	83"))) {
 	    fact_Issuer_ID = fact_Issuer_ID + "83" + " ";
@@ -635,8 +636,6 @@ public class ObjectTransaction {
 	    } else if (temp.contains("409")) {
 		suspect_DeclinedClient = true;
 		addIssue("Status code 409", false, "Status code");
-		addSolution("Verify terminal is properly connected.");
-		addSolution("Verify no service is running already.");
 	    } else {
 		String resultTemp = temp;
 		// result = result + resultTemp + ", ";
@@ -739,7 +738,8 @@ public class ObjectTransaction {
 		fact_TrxComplete = true;
 		setProgress(10);
 	    } else if (temp.equals("4000")) {// receipt_Response
-	    } else if (temp.equals("4002")) {// INPUT_REQUEST_RESPONSE
+	    } else if (temp.equals("4002")) {// INPUT_REQUEST_RESPONSE (request, ikke response fra bruker)
+		fact_DialogAsked = true;
 	    } else if (temp.equals("4003")) {// Inputdialog kansellert. Kan være forced signature
 		addIssue(temp, false, "Eventid : ");
 	    } else {
@@ -827,7 +827,6 @@ public class ObjectTransaction {
 		this.suspect_DeclinedTerminal = true;
 		fact_approved = 2;
 		addIssue("Terminal server connection fails", true, null);
-		addSolution("Check terinal logs for cause of offline");
 	    } else if (temp.contains("4003")) {// Inputdialog kansellert. Kan være forced signature
 	    } else if ((!temp.contains("118")) && (!temp.contains("Event(11"))) {}
 	    if (fact_iDMeth.value.toLowerCase().contains("signatur")) {
@@ -961,8 +960,6 @@ public class ObjectTransaction {
 	    // problematic
 	    if ((temp.contains("204"))) {// MP teknisk feil
 		addIssue("MobilePay login error [204]", true, null);
-		addSolution("Sjekk oppsett i SAT");
-		addSolution("Sjekk COM port-oppsett på maskinen, se etter feilmeldinger ved PPCLs oppstart");
 	    }
 	    if ((temp.contains("705"))) {
 		class_Controller.config.addParam("cardInTerminal", "false");
@@ -976,48 +973,42 @@ public class ObjectTransaction {
 	    }
 	    if ((temp.contains("1062"))) {
 		suspect_DeclinedTerminal = true;
-		temp = "Service not allowed for this card";
 		class_Controller.config.addParam("Terminal connected in software", "true");
-		addIssue(temp, true, null);
+		addIssue("Service not allowed for this card", true, null);
 	    }
 	    if ((temp.contains("1055"))) {// wrong pin code, not a problem
-		temp = "Wrong PIN code";
-		addIssue(temp, false, null);
+		addIssue("Wrong PIN code", false, null);
 	    }
 	    if ((temp.contains("1515"))) {
 		suspect_DeclinedTerminal = true;
 		class_Controller.config.addParam("Terminal connected in software", "true");
-		temp = "Service not enabled for card";
-		addIssue(temp, true, null);
+		addIssue("Service not enabled for card", true, null);
 	    }
 	    if ((temp.contains("1527"))) {
 		suspect_DeclinedClient = true;
-		temp = "Duplicate trx";
-		addIssue(temp, true, null);
+		addIssue("Duplicate trx", true, null);
 	    }
 	    if (temp.contains("3003")) {
-		String issuesTemp = temp + " Unknown issuer";
-		addIssue(issuesTemp, false, null);
+		addIssue(" Unknown issuer", false, null);
 	    }
 	    if (temp.contains("3997")) {
-		String issuesTemp = temp + " ppp.key inaccessible";
-		addIssue(issuesTemp, false, null);
-		addSolution("Fix terminal connection");
+		addIssue("ppp.key inaccessible", false, null);
+	    }
+	    if (temp.contains("4002")) {
+		fact_DialogAsked = true;
 	    }
 	    if (temp.contains("4003")) {// Inputdialog kansellert. Kan være forced signature. Ikke et problem
 		// addIssue(temp + " dialog stoppet", false);
 	    }
 	    if (!issues_last.contains(temp)) { // events not specified
-		String issuesTemp = temp;
 		if ((temp.contains("832"))) {
-		    addIssue(issuesTemp, false, null);
+		    addIssue(temp, false, null);
 		} else if ((temp.contains("999"))) {
-		    addIssue(issuesTemp, false, null);
+		    addIssue(temp, false, null);
 		} else if ((temp.contains("1550"))) {
-		    addIssue(issuesTemp, false, null);
+		    addIssue(temp, false, null);
 		} else if ((temp.contains("3028"))) {
-		    addIssue(issuesTemp, false, null);
-		    addSolution("Verify terminal config for addresses");
+		    addIssue(temp, false, null);
 		}
 	    }
 	}
@@ -1918,7 +1909,31 @@ public class ObjectTransaction {
 	    class_Controller.config.addParam("DNS", DNS);
 	    class_Controller.config.addParam("DNS IP", DNSIP);
 	}
+	if (raw.contains("Starting input session, queue-length")) {
+	    this.fact_DialogAsked = true;
+	    if (raw.contains("EXPIRE_DATE")) {// obligatorisk
+		this.fact_DialogRequired = true;
+	    } else if (raw.contains("FORCE_SIGN")) {// optional
+	    } else if (raw.contains("Starting input session, queue-length: 0, request: 5")) {// obligatorisk
+		this.fact_DialogRequired = true;
+	    } else if (raw.contains("Starting input session, queue-length: 0, request: 6")) {// obligatorisk
+		this.fact_DialogRequired = true;
+	    } else if (raw.contains("MOBILEPAY_TRANSACTION")) {// optional
+	    } else if (raw.contains("VERIFY_SIGN")) {// obligatorisk
+		this.fact_DialogRequired = true;
+	    }
+	}
+	if (raw.contains("GenericInputRequestExecutor: request:")) {
+	    if (this.fact_approved != 2) {
+		this.fact_DialogAnswered = true;
+		//System.out.println(raw);
+	    }
+	}
 	// issues. Order is decided by occurence in log
+	if (raw.contains("is not a valid COM port")) {
+	    addIssue("Bad COM port for async purchase", false, null);
+	    addSolution("Set COM port to #10");
+	}
 	if (raw.contains("(AddAdditionalDataHandler.java:120)")) {
 	    addIssue("Trx stopped by broken database", true, null);
 	    addSolution("Reinstall");
@@ -2024,21 +2039,11 @@ public class ObjectTransaction {
 	    addSolution("Mulig feil i config.properties");
 	    addSolution("If not already tried, check if PcPos gets the same issue.");
 	    addSolution("Try restarting PosPayService. Check logs for communication failures");
+	    addSolution("Verify local com port settings");
 	    if (class_Controller.config.getParam("Terminal connected in software") == "true") {
 		addIssue("Client lost connection to terminal", true, null);
-		addSolution("Verify physical terminal connection");
-		addSolution("Verify that power supply is sufficient");
 	    } else {
 		addIssue("Client lacks connection to terminal", true, null);
-		addSolution("Verify Routing and Remote Access is running properly");
-		addSolution("Verify IPV6 is deleted");
-		addSolution("Verify terminal connection settings");
-		addSolution("Verify config.properties does not have typos");
-		addSolution("Verify local com port settings");
-		addSolution("Try reinstalling USB drivers");
-		addSolution("Verify network settings");
-		addSolution("Verify terminal ECR mode is PPP");
-		addSolution("Verify that power supply is sufficient");
 	    }
 	}
 	if (raw.contains("Failed to download security settings for ")) {
@@ -2070,6 +2075,7 @@ public class ObjectTransaction {
 	    addSolution("Mulig feil i config.properties");
 	    addSolution("Verify DNS settings");
 	    addSolution("Verify network settings");
+	    addSolution("Verify local com port settings");
 	}
 	if ((raw.contains("UnknownHostException: pospay.payex.com")) || (raw.contains("unknown host"))) {
 	    addIssue("Could not connect to server", true, null);
@@ -2342,8 +2348,7 @@ public class ObjectTransaction {
 	    addIssue(issuesTemp, true, null);
 	}
 	if (raw.toLowerCase().contains("status_err_fallback_cancelled")) {
-	    String issuesTemp = "Terminal says Fallback was aborted by user";
-	    addIssue(issuesTemp, true, null);
+	    addIssue("Terminal says Fallback was aborted by user", (this.fact_approved != 2), null);
 	}
 	if (raw.toLowerCase().contains("status_err_fallback_not_allowed")) {
 	    String issuesTemp = "Terminal says Chip failed. Fallback was not allowed";
@@ -2356,24 +2361,20 @@ public class ObjectTransaction {
 	    addIssue(issuesTemp, true, "status_err_comm_failed");
 	}
 	if (raw.toLowerCase().contains("status_err_bbs_rejected")) {
-	    String issuesTemp = "Terminal says Host rejected transaction";
 	    suspect_DeclinedHost = true;
-	    addIssue(issuesTemp, true, null);
+	    addIssue("Terminal says Host rejected transaction", true, null);
 	}
 	if (raw.toLowerCase().contains("status_err_card")) {
-	    String issuesTemp = "Terminal says Card errors: Card read failed";
 	    suspect_DeclinedTerminal = true;
-	    addIssue(issuesTemp, true, null);
+	    addIssue("Terminal says Card errors: Card read failed", true, null);
 	}
 	if (raw.toLowerCase().contains("status_err_timeout")) {
-	    String issuesTemp = "Terminal says No activity. Transaction aborted";
 	    suspect_DeclinedTerminal = true;
-	    addIssue(issuesTemp, false, null);
+	    addIssue("Terminal says No activity. Transaction aborted", false, null);
 	}
 	if (raw.toLowerCase().contains("status_err_bax_reject")) {
-	    String issuesTemp = "Terminal says BAX rejected transaction";
 	    suspect_DeclinedHost = true;
-	    addIssue(issuesTemp, true, null);
+	    addIssue("Terminal says BAX rejected transaction", true, null);
 	}
 	if (raw.toLowerCase().contains("status_err_user_abort")) {
 	    if (this.fact_approved != 2) {
@@ -2555,12 +2556,10 @@ public class ObjectTransaction {
 	    addIssue(issuesTemp, false, null);
 	}
 	if (raw.contains("Failed to get transaction")) {
-	    String issuesTemp = "Failed to get previous transaction";
-	    addIssue(issuesTemp, false, null);
+	    addIssue("Failed to get previous transaction", false, null);
 	}
 	if (raw.contains("Failed to check if previous transaction was completed")) {
-	    String issuesTemp = "Failed to check previous trx";
-	    addIssue(issuesTemp, false, null);
+	    addIssue("Failed to check previous trx", false, null);
 	    addSolution("Check database.script for offline transactions");
 	}
 	if (raw.contains("threads could not be stopped")) {
@@ -2793,39 +2792,35 @@ public class ObjectTransaction {
 	    }
 	}
 	if (raw.contains("Cancel called by operator")) {
-	    if (fact_approved != 2) {
+	    // System.out.println("Cancel called by operator. fact_approved="+fact_approved);
+	    // System.out.println(raw);
+	    if (fact_approved != 2) { // hvorvidt trx allerede er avvist/rejected. Viktig for årsaksvurdering
 		fact_approved = 2;
 		suspect_cancelECR = true;
-		if ((this.fact_CardDataResponse > 0)) {
+		if (this.fact_DialogAsked && this.fact_DialogRequired && !this.fact_DialogAnswered) {
+		    addIssue("ECR cancelled required dialog request", true, null);
+		}
+		// System.out.println("Cancel called by operator. fact_CardDataResponse="+fact_CardDataResponse);
+		if ((this.fact_CardDataResponse == 0)) {
+		    // System.out.println("Cancel called by operator. fact_propertieResponse="+fact_propertieResponse);
 		    if (this.fact_propertieResponse == false) {
 			addIssue("Client does not handle cancel at this point. Terminal conn. is slow", true, null);
-			addSolution("Fix terminal connection");
-			// System.out.println("Client does not handle cancel at this point "+fact_propertieResponse+"
-			// "+fact_CardDataResponse);
 		    } else {
-			addIssue("Cancel called from ECR", true, null);
+			addIssue("Cancel called from ECR.", true, null);
 		    }
 		} else {
 		    if (this.fact_cardEjected) {
 			addIssue("Terminal ejected card", true, null);
-			addSolution("Check terminal logs to find cause of card ejection");
 			this.suspect_cancelTerminalsw = true;
 		    } else {
 			addIssue("Cancel called from ECR - ECR possibly hanging", true, null);
-			if (class_Controller.config.getParam("cardExtensions.enabled") != null
-				&& class_Controller.config.getParam("cardExtensions.enabled").contains("true")) {} else {
-			    if (this.fact_CardDataResponse == 0) {
-				addSolution("Verify terminal is not set to Fuel");
-				addSolution("Check terminal logs for clues to async");
-			    }
-			}
 		    }
 		}
 	    }
 	}
 	if ((raw.contains("CANCEL_RESPONSE	-	0")) || (raw.contains("cancel() "))) {
 	    suspect_cancelECR = true;
-	    addIssue("Cancel called from ECR", true, null);
+	    addIssue("Cancel called from ECR.", true, null);
 	}
 	if (raw.contains("pinBeforeAmount=false")) {
 	    class_Controller.config.addParam("pospay.client.pinBeforeAmount", "false");
@@ -2938,9 +2933,7 @@ public class ObjectTransaction {
 	    addSolution("Restart computer");
 	}
 	if ((raw.contains("N1")) && (raw.contains("validateProductSetOnServerResponse") == false)) {
-	    String issuesTemp = "N1 - Restricted wares";
-	    addIssue(issuesTemp, true, "validateProductSetOnServerResponse");
-	    addSolution("Remove restricted wares and try again");
+	    addIssue("N1 - Restricted wares", true, "validateProductSetOnServerResponse");
 	    suspect_DeclinedServer = true;
 	}
 	if (raw.contains("TrackData contains no CardIssuer")) {
@@ -3090,8 +3083,7 @@ public class ObjectTransaction {
 	}
 	// dynamisk
 	if (raw.contains("Transaction failed")) {
-	    String issuesTemp;
-	    issuesTemp = raw.substring(raw.indexOf("Transaction failed"));
+	    String issuesTemp = raw.substring(raw.indexOf("Transaction failed"));
 	    if (!issuesTemp.contains("1510")) {
 		addIssue(issuesTemp, false, null);
 	    }
@@ -3441,7 +3433,7 @@ public class ObjectTransaction {
 		    }
 		}
 		if (class_Controller.config.getParam("Terminal connection") == "false") {
-		    addIssue("Terminal not properly connected to computer", false, null);
+		    addIssue("Client lacks connection to terminal", true, null);
 		}
 		if (fact_completeResponse == false) {
 		    String temp = "No completeResponse received";
@@ -3549,7 +3541,6 @@ public class ObjectTransaction {
 	}
 	if (PPPkey_correct == false && class_Controller.config.getParam("PPP address 1").contains("false")) {
 	    addIssue("Server connection issues makes PPP.key unavailable", true, null);
-	    addSolution("Verify that terminal ID matches SAT setup");
 	}
 	// alltid vente til slutten av metoden med å printe results og issues
 	// System.out.println("print 9=" + print);
@@ -3610,6 +3601,9 @@ public class ObjectTransaction {
 	if (isLogg(logFile)) {
 	    if ((isTerminalLogg() == false)) {
 		tekst = tekst + "== Client session ==" + class_Controller.newline;
+		tekst = tekst + "Dialogs popped: " + this.fact_DialogAsked + class_Controller.newline;
+		tekst = tekst + "Dialogs required: " + this.fact_DialogRequired + class_Controller.newline;
+		tekst = tekst + "Dialogs answered: " + this.fact_DialogAnswered + class_Controller.newline;
 		tekst = tekst + "= Client config =" + class_Controller.newline;
 		tekst = addParam(tekst, "PosPayService");
 		tekst = addParam(tekst, "pospay.client.pinBypass.enabled");
@@ -3872,7 +3866,7 @@ public class ObjectTransaction {
 			? ("Cancel from PosPayService: " + this.suspect_cancelPPCL + class_Controller.newline) : "");
 		tekst = tekst + (this.suspect_cancelECR ? ("Cancel from ECR: " + this.suspect_cancelECR + class_Controller.newline) : "");
 		// tekst = tekst + "Solutions: " + solutions + "";
-		tekst = tekst + "Solutions: ";
+		tekst = tekst + "-- Solutions: " + class_Controller.newline;
 		/*
 		 * Iterator it = solutionsTransaction.entrySet().iterator(); while (it.hasNext()) { Map.Entry pair = (Map.Entry) it.next();
 		 * // System.out.println(pair.getKey() + " = " + pair.getValue()); tekst = tekst + pair.getKey() + " (" + pair.getValue() +
@@ -3925,15 +3919,6 @@ public class ObjectTransaction {
 	}
 	return false;
     }
-    private void addSolution(String add) {
-	if (solutionsTransaction.get(add) != null) {
-	    Integer count = (Integer) solutionsTransaction.get(add);
-	    count++;
-	    solutionsTransaction.put(add, count);
-	} else {
-	    solutionsTransaction.put(add, new Integer(1));
-	}
-    }
     public LinkedHashMap<String, Integer> sortHashMapByValues(HashMap<String, Integer> passedMap) {
 	List<String> mapKeys = new ArrayList<>(passedMap.keySet());
 	List<Integer> mapValues = new ArrayList<>(passedMap.values());
@@ -3969,11 +3954,74 @@ public class ObjectTransaction {
 	    }
 	}
 	if (!this.issues_last.contains(add) && !this.issues_first.contains(add)) {
+	    addSolutions(add);
 	    if (front) {
 		issues_first = add + ", " + issues_first;
 	    } else {
 		issues_last = issues_last + add + ", ";
 	    }
+	}
+    }
+    private void addSolutions(String issue) {
+	if (issue.contains("3028")) {
+	    addSolution("Verify terminal config for addresses");
+	} else if (issue.contains("Cancel called from ECR.")) {} else if (issue
+		.contains("Card refused by or removed from terminal")) {} else if (issue.contains("Client lacks connection to terminal")) {
+	    addSolution("Verify Routing and Remote Access is running properly");
+	    addSolution("Verify IPV6 is deleted");
+	    addSolution("Verify terminal connection settings");
+	    addSolution("Verify config.properties does not have typos");
+	    addSolution("Try reinstalling USB drivers");
+	    addSolution("Verify network settings");
+	    addSolution("Verify terminal ECR mode is PPP");
+	    addSolution("Verify that power supply is sufficient");
+	} else if (issue.contains("Cancel called from ECR - ECR possibly hanging")) {
+	    if (class_Controller.config.getParam("cardExtensions.enabled") != null
+		    && class_Controller.config.getParam("cardExtensions.enabled").contains("true")) {} else {
+		if (this.fact_CardDataResponse == 0) {
+		    addSolution("Verify terminal is not set to Fuel");
+		    addSolution("Check terminal logs for clues to async");
+		}
+	    }
+	} else if (issue.contains("Client does not handle cancel at this point. Terminal conn. is slow")) {
+	    addSolution("Fix terminal connection");
+	} else if (issue.contains("Client lost connection to terminal")) {
+	    addSolution("Verify physical terminal connection");
+	    addSolution("Verify that power supply is sufficient");
+	} else if (issue.contains("CommunicationBroke - PosPayService lost connection to terminal")) {} else if (issue
+		.contains("CVM failed")) {} else if (issue
+			.contains("CVM mismatch terminal and PPCL")) {} else if (issue.contains("Host rsp code 34")) {} else if (issue
+				.contains("Host rsp code 51")) {} else if (issue.contains("Host rsp code 65")) {} else if (issue
+					.contains("item validation failed because of restriction")) {} else if (issue
+						.contains("MobilePay login error [204]")) {
+	    addSolution("Sjekk oppsett i SAT");
+	    addSolution("Sjekk COM port-oppsett på maskinen, se etter feilmeldinger ved PPCLs oppstart");
+	} else if (issue.contains("N1 - Restricted wares")) {
+	    addSolution("Remove restricted wares and try again");
+	} else if (issue.contains("ppp.key inaccessible")) {
+	    addSolution("Fix terminal connection");
+	} else if (issue.contains("Rejected by server with 58")) {
+	    addSolution(
+		    "This transaction possibly contradicts SAT agreements.\nIn the case of illegal transactions, PayEx must pay the customer for these trx'es.\nWipe terminal, load it with the correct setup and then return it to customer.");
+	} else if (issue.contains("Server connection issues makes PPP.key unavailable")) {
+	    addSolution("Verify that terminal ID matches SAT setup");
+	} else if (issue.contains("Status code 409")) {
+	    addSolution("Verify terminal is properly connected.");
+	    addSolution("Verify no service is running already.");
+	} else if (issue.contains("Terminal ejected card")) {
+	    addSolution("Check terminal logs to find cause of card ejection");
+	} else if (issue.contains("Terminal says Card errors: Card read failed")) {} else if (issue
+		.contains("Terminal says Host rejected transaction")) {} else if (issue.contains("Terminal server connection fails")) {
+	    addSolution("Check terinal logs for cause of offline");
+	} else if (issue.contains("Transaction failed: 1529")) {} else if (issue.contains("Transaction failed: 1549")) {}
+    }
+    private void addSolution(String add) {
+	if (solutionsTransaction.get(add) != null) {
+	    Integer count = (Integer) solutionsTransaction.get(add);
+	    count++;
+	    solutionsTransaction.put(add, count);
+	} else {
+	    solutionsTransaction.put(add, new Integer(1));
 	}
     }
     private String addParam(String tekst, String param) {

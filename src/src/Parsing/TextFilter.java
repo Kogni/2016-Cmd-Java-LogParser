@@ -466,6 +466,8 @@ class TextFilter {
 		    || (line.toLowerCase().contains("INFO  [main] com.pos.pospayinterface.CorePosPayClientProxy: 	".toLowerCase()))// ppcl
 																	 // config
 		    || (line.toLowerCase().contains("INSERT INTO ".toLowerCase()))
+		    || (line.toLowerCase().contains("Starting input session, queue-length".toLowerCase()))
+		    || (line.toLowerCase().contains("GenericInputRequestExecutor: request: ".toLowerCase()))
 		    || (line.toLowerCase().contains(" approved".toLowerCase())) || (line.toLowerCase().contains(" valid".toLowerCase())))
 		    && ((line.toLowerCase().contains("CREATE MEMORY TABLE".toLowerCase()) == false))) {
 		ProcessLine("INFO		- " + line, logFile, interpretor, "H", directory);

@@ -19,6 +19,7 @@ Changes
 - 2016.10.25: Improved transaction progress counter.
 + 2016.10.25: Added recognition of transactions cancelled\rejected after PIN entry.
 + 2016.10.25: Added counter and sorting for likely solutions.
++ 2016.11.01: Added check for answered dialogs, required and optional.
 
 1.0.1
 - 2016.03.08: Improved recognition and solutions for issues about terminal connection.
