@@ -886,6 +886,8 @@ public class ObjectTransaction {
 		    }
 		} else if ((temp.contains("832:"))) {
 		    addIssue(issuesTemp, false, null);
+		} else if ((temp.contains("835:"))) {// fikk tilbake forbindelse...
+		    addIssue("Terminal lost connection to host", true, null);
 		}
 	    }
 	}
@@ -1926,7 +1928,7 @@ public class ObjectTransaction {
 	if (raw.contains("GenericInputRequestExecutor: request:")) {
 	    if (this.fact_approved != 2) {
 		this.fact_DialogAnswered = true;
-		//System.out.println(raw);
+		// System.out.println(raw);
 	    }
 	}
 	// issues. Order is decided by occurence in log
@@ -2139,16 +2141,8 @@ public class ObjectTransaction {
 	}
 	if ((raw.contains("Unable to use spring beans, might not be able to correctly initialize"))
 		|| (raw.contains("LifecycleProcessor not initialized"))) {
-	    String issuesTemp = "Datastore blocked (Unable to use spring beans)";
 	    suspect_DeclinedClient = true;
-	    addIssue(issuesTemp, false, null);
-	    addSolution("Mulig feil i config.properties");
-	    addSolution("Verify that TMS ports are not blocked");
-	    addSolution("Verify that relay ports are not blocked");
-	    addSolution("Verify ppp.key is valid");
-	    addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
-	    addSolution("Verify that terminal ID matches SAT setup");
-	    addSolution("Host file might need to have pospaywan.payex.com added");
+	    addIssue("Datastore blocked (Unable to use spring beans)", false, null);
 	}
 	if (raw.contains("Transaction was rejected due to a communication error")) { // kan skyldes kansellering etter kort før pin
 	    suspect_DeclinedClient = true;
@@ -2160,8 +2154,6 @@ public class ObjectTransaction {
 	if (raw.contains("Failed to connect to pospay service within timeout")) {
 	    suspect_DeclinedClient = true;
 	    addIssue("Connection issues", false, "Failed to connect to pospay service within timeout");
-	    addSolution("Check connection settings");
-	    addSolution("Verify PPP.key is valid");
 	}
 	if (raw.contains("AsyncStatusResponse") && raw.contains("CANCELED")) {
 	    String issuesTemp = "MP timed out";
@@ -2898,8 +2890,6 @@ public class ObjectTransaction {
 	}
 	if (raw.contains("(ClientKeyStore.java:120)")) {
 	    addIssue("Failed to load PPP.key", true, null);
-	    addSolution("PPP.key missing");
-	    PPPkey_correct = false;
 	}
 	if (raw.contains("BIN_FORBIDDEN")) {
 	    addIssue("BIN_FORBIDDEN", true, null);
@@ -3683,9 +3673,9 @@ public class ObjectTransaction {
 			// tekst = tekst + "SSL settings --" + "class_Controller.newline";
 			tekst = tekst + "-- Terminal functions --" + class_Controller.newline;
 			for (int i = 0; i < 510; i++) {
-			    if ((i != 63) && (i != 64) && (i != 74) && (i != 86) && (i != 100) && (i != 109) && (i != 123) && (i != 125)
-				    && (i != 133) && (i != 142) && (i != 143) && (i != 144) && (i != 150) && (i != 153) && (i != 156)
-				    && (i != 173) && (i != 251) && (i != 253) && (i != 255)) {
+			    if ((i != 63) && (i != 64) && (i != 100) && (i != 109) && (i != 125) && (i != 133) && (i != 142) && (i != 143)
+				    && (i != 144) && (i != 150) && (i != 156) && (i != 173) && (i != 251) && (i != 253) && (i != 254)
+				    && (i != 255)) {
 				// System.out.println("-" + i + "-");
 				tekst = addParam(tekst, "Param " + i);
 			    }
@@ -3996,10 +3986,30 @@ public class ObjectTransaction {
 						.contains("MobilePay login error [204]")) {
 	    addSolution("Sjekk oppsett i SAT");
 	    addSolution("Sjekk COM port-oppsett på maskinen, se etter feilmeldinger ved PPCLs oppstart");
-	} else if (issue.contains("N1 - Restricted wares")) {
+	} else if (issue.contains("Connection issues")) {
+	    suspect_DeclinedClient = true;
+	    addSolution("Check connection settings");
+	    addSolution("Verify PPP.key is valid");
+	} else if (issue.contains("Datastore blocked (Unable to use spring beans)")) {
+	    suspect_DeclinedClient = true;
+	    addSolution("Mulig feil i config.properties");
+	    addSolution("Verify that TMS ports are not blocked");
+	    addSolution("Verify that relay ports are not blocked");
+	    addSolution("Verify ppp.key is valid");
+	    addSolution("Data-folder could be corrupt. Try copy-pasting form an installation that works");
+	    addSolution("Verify that terminal ID matches SAT setup");
+	    addSolution("Host file might need to have pospaywan.payex.com added");
+	} else if (issue.contains("Failed to load PPP.key")) {
+	    addSolution("PPP.key missing");
+	    PPPkey_correct = false;
+	} else if (issue.contains("Invalid server response code")) {} else if (issue
+		.contains("Keystore unavailable")) {} else if (issue.contains("N1 - Restricted wares")) {
 	    addSolution("Remove restricted wares and try again");
 	} else if (issue.contains("ppp.key inaccessible")) {
 	    addSolution("Fix terminal connection");
+	} else if (issue.contains("PPP-key missing or invalid")) {
+	    addSolution("Fix PPP.key");
+	    PPPkey_correct = false;
 	} else if (issue.contains("Rejected by server with 58")) {
 	    addSolution(
 		    "This transaction possibly contradicts SAT agreements.\nIn the case of illegal transactions, PayEx must pay the customer for these trx'es.\nWipe terminal, load it with the correct setup and then return it to customer.");
