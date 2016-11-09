@@ -857,7 +857,13 @@ public class ObjectTransaction {
 		setProgress(6);
 	    }
 	    // problematic
-	    if ((temp.contains("705"))) {
+	    if ((temp.contains("39"))) {
+		if (this.fact_approved != 2) {
+		    fact_approved = 2;
+		    this.suspect_DeclinedTerminal = true;
+		    addIssue("Rejected by terminal", false, null);
+		}
+	    } else if ((temp.contains("705"))) {
 		class_Controller.config.addParam("cardInTerminal", "false");
 	    } else if (temp.contains("3003")) {
 		addIssue(temp, false, null);
@@ -1932,8 +1938,36 @@ public class ObjectTransaction {
 	    }
 	}
 	// issues. Order is decided by occurence in log
+	if (raw.contains("PIN entry required and PIN pad not present or not working")) {
+	    if (this.Progress == 5) {
+		this.suspect_Cancelcustomer = true;
+		addIssue("Kansellert av kortholder?", false, null);
+	    } else {
+		if (!fact_OI.value.contains("OFFLINE")) {
+		    addIssue("Declined in 1st generate AC (card verification)", true, null);
+		} else {
+		    addIssue("Terminal lacks required connection", true, null);
+		}
+		suspect_DeclinedTerminal = true;
+	    }
+	}
+	if (raw.contains("data authentication was not performed")) { //kan skje i vellykkede trx'er
+	}
+	if (raw.contains("Cardholder verification was not successful")) {
+	    if (this.Progress == 5) {
+		this.suspect_Cancelcustomer = true;
+		addIssue("Kansellert av kortholder?", false, null);
+	    } else {
+		if (!fact_OI.value.contains("OFFLINE")) {
+		    addIssue("Declined in 1st generate AC (card verification)", true, null);
+		} else {
+		    addIssue("Terminal lacks required connection", true, null);
+		}
+		suspect_DeclinedTerminal = true;
+	    }
+	}
 	if (raw.contains("is not a valid COM port")) {
-	    addIssue("Bad COM port for async purchase", false, null);
+	    addIssue("Bad COM port for async purchase", true, null);
 	    addSolution("Set COM port to #10");
 	}
 	if (raw.contains("(AddAdditionalDataHandler.java:120)")) {
@@ -2370,10 +2404,9 @@ public class ObjectTransaction {
 	}
 	if (raw.toLowerCase().contains("status_err_user_abort")) {
 	    if (this.fact_approved != 2) {
-		String issuesTemp = "Terminal says User aborted transaction";
 		if (!this.suspect_cancelECR) {
 		    this.suspect_Cancelcustomer = true;
-		    addIssue(issuesTemp, true, null);
+		    addIssue("Kansellert av kortholder", true, null);
 		}
 	    }
 	}
@@ -2770,16 +2803,21 @@ public class ObjectTransaction {
 	    addSolution("In terminal, set parameter 253 to 1, OR In Config.properties, set pospay.client.strictTLVEncoding=true");
 	}
 	if (raw.contains("REJECTED_BEFORE_AUTH")) {
-	    if (Progress < 6) {
-		String temp = "Card rejected";
-		if (!this.suspect_cancelECR) {
-		    suspect_DeclinedTerminal = true;
-		    if (this.suspect_cancelTerminalsw == true) {// terminal has already cancelled
-			temp = "Terminal set to Fuel in param 222?";
-			addIssue(temp, false, null);
-		    } else if (fact_cardEntered) {
-			addIssue(temp, false, null);
+	    if (Progress < 5) {
+		if (this.fact_approved != 2) {
+		    if (!this.suspect_cancelECR) {
+			suspect_DeclinedTerminal = true;
+			if (this.suspect_cancelTerminalsw == true) {// terminal has already cancelled
+			    addIssue("Terminal set to Fuel in param 222?", false, null);
+			} else if (fact_cardEntered) {
+			    addIssue("Card rejected", false, null);
+			}
 		    }
+		}
+	    } else if (Progress == 5) {
+		if (this.fact_approved != 2) {
+		    addIssue("Kansellert av kortholder?", false, null);
+		    this.suspect_Cancelcustomer = true;
 		}
 	    }
 	}
@@ -2865,14 +2903,6 @@ public class ObjectTransaction {
 	    suspect_DeclinedTerminal = true;
 	    addIssue("Declined: Unable to go online", true, null);
 	    fact_online = false;
-	}
-	if (raw.contains("PIN entry required and PIN pad not present or not working")) {
-	    suspect_DeclinedTerminal = true;
-	    addIssue("PIN encryption failed", true, null);
-	}
-	if (raw.contains("Cardholder verification was not successful")) {
-	    suspect_DeclinedTerminal = true;
-	    addIssue("CVM failed", true, null);
 	}
 	if (raw.contains("Failed to download terminal settings")) {
 	    suspect_DeclinedClient = true;
@@ -3034,8 +3064,13 @@ public class ObjectTransaction {
 										// ";
 	}
 	if (raw.contains("CVM_FAILED")) {
-	    if (fact_cardEntered) {
-		addIssue("CVM_FAILED", false, null);
+	    if (this.fact_approved != 2) {
+		fact_approved = 2;
+		if (this.Progress == 5) {
+		    addIssue("Kansellert av kortholder?", false, null);
+		} else if (fact_cardEntered) {
+		    addIssue("CVM_FAILED", false, null);
+		}
 	    }
 	}
 	if ((raw.contains("OFFLINE_COUNT	-	")) && (raw.contains("OFFLINE_COUNT	-	00000000") == false)) {
